@@ -8,6 +8,7 @@ CONFIG_DIR = os.path.join(Path.home(), 'AppData', 'local', 'EDWatcher')
 CONFIG_FILE = 'edwatcher.conf'
 CONFIG_PATH = os.path.join(CONFIG_DIR, CONFIG_FILE)
 
+
 class DirectoryWatcher:
 
     def __init__(self, dir, set_hook):
@@ -25,51 +26,54 @@ class DirectoryWatcher:
             self.set_hook(current_latest_file)
             sleep(1)
 
+
 class FileWatcher:
 
-    def __init__(self, path, commit_hook, last_committed_hook):
+    def __init__(self, path, submit_hook, last_submitted_hook):
         self.path = path
-        self.commit_hook = commit_hook
+        self.submit_hook = submit_hook
         self.terminate = False
-        self.last_committed_hook = last_committed_hook
+        self.last_submitted_hook = last_submitted_hook
 
     def terminate(self):
         self.terminate = True
 
     def loop(self):
         while not self.terminate:
-            committed = True
+            submitted = True
             with open(self.path, 'r') as f:
                 for line in f.readlines():
-                    if not committed:
-                        self.commit_hook(line)
-                    last_committed, lock = self.last_committed_hook()
-                    if line == last_committed:
-                        committed = False
+                    if not submitted:
+                        self.submit_hook(line)
+                    last_submitted, lock = self.last_submitted_hook()
+                    if line == last_submitted:
+                        submitted = False
                     lock.release()
             sleep(1)
+
 
 class SubmitWatcher:
 
     def __init__(self, set_last_entry_hook):
-        self.commit_entries = []
+        self.submit_entries = []
         self.terminate = False
         self.set_last_entry = set_last_entry_hook
 
-    def commit(self, entries):
-        self.commit_entries = list(entries)
-        return self.commit_entries
+    def submit(self, entries):
+        self.submit_entries = list(entries)
+        return self.submit_entries
 
     def loop(self):
         while not self.terminate:
-            if len(self.commit_entries) > 0:
+            if len(self.submit_entries) > 0:
                 last_entry = None
-                for entry in self.commit_entries:
-                    print('commit entry: %s' % entry)
+                for entry in self.submit_entries:
+                    print('submit entry: %s' % entry)
                     last_entry = entry
-                self.commit_entries = []
+                self.submit_entries = []
                 self.set_last_entry(last_entry)
             sleep(5)
+
 
 class EDWatcher:
     '''
@@ -97,19 +101,19 @@ class EDWatcher:
             sys.exit(1)
         print('last submitted entry was %s' % self.conf['last_submitted'])
         self.watch_file = None
-        self.entries_to_commit = []
-        self.commit_entry_lock = Lock()
-        self.last_committed_lock = Lock()
+        self.entries_to_submit = []
+        self.submit_entry_lock = Lock()
+        self.last_submitted_lock = Lock()
         self.file_watcher = None
         self.submit_watcher = SubmitWatcher(self.update_last_submitted)
         Thread(target=self.submit_watcher.loop).start()
 
-    def add_commit_entry(self, entry):
-        self.commit_entry_lock.acquire()
-        if entry not in self.entries_to_commit:
+    def add_submit_entry(self, entry):
+        self.submit_entry_lock.acquire()
+        if entry not in self.entries_to_submit:
             print('adding new submit entry: %s' % entry)
-            self.entries_to_commit.append(entry)
-        self.commit_entry_lock.release()
+            self.entries_to_submit.append(entry)
+        self.submit_entry_lock.release()
 
     def set_watch_file(self, path):
         if self.watch_file != path:
@@ -119,12 +123,12 @@ class EDWatcher:
                 print('stopping old file watcher')
                 self.file_watcher.terminate()
             print('starting new file watcher')
-            fw = FileWatcher(path, self.add_commit_entry, self.get_last_committed)
+            fw = FileWatcher(path, self.add_submit_entry, self.get_last_submitted)
             Thread(target=fw.loop).start()
 
-    def get_last_committed(self):
-        self.last_committed_lock.acquire()
-        return self.conf['last_submitted'], self.last_committed_lock
+    def get_last_submitted(self):
+        self.last_submitted_lock.acquire()
+        return self.conf['last_submitted'], self.last_submitted_lock
 
     def update_last_submitted(self, obj):
         self.conf['last_submitted'] = obj
@@ -133,10 +137,10 @@ class EDWatcher:
 
     def loop(self):
         while not self.terminate:
-            self.commit_entry_lock.acquire()
-            queued = self.submit_watcher.commit(self.entries_to_commit)
-            self.entries_to_commit = [n for n in self.entries_to_commit if n not in queued]
-            self.commit_entry_lock.release()
+            self.submit_entry_lock.acquire()
+            queued = self.submit_watcher.submit(self.entries_to_submit)
+            self.entries_to_submit = [n for n in self.entries_to_submit if n not in queued]
+            self.submit_entry_lock.release()
             sleep(10)
 
     def run(self):
@@ -150,16 +154,16 @@ class EDWatcher:
             with open(file, 'r') as f:
                 for line in f.readlines():
                     if not submitted:
-                        self.add_commit_entry(line)
+                        self.add_submit_entry(line)
                     if line == self.conf['last_submitted']:
                         submitted = False
-
 
         directory_watcher = DirectoryWatcher(JOURNAL_DIR, self.set_watch_file)
         directory_watcher_thread = Thread(target=directory_watcher.loop)
         directory_watcher_thread.start()
 
         self.loop()
+
 
 if __name__ == '__main__':
     app = EDWatcher()
