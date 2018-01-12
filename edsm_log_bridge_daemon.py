@@ -22,12 +22,11 @@ def resource_path(relative):
     return os.path.join(base_path, relative)
 
 
-
 ICON_PATH = resource_path('icon.ico')
 print(ICON_PATH)
 
-class DirectoryWatcher:
 
+class DirectoryWatcher:
     terminate = False
 
     def __init__(self, dir, set_hook):
@@ -45,7 +44,6 @@ class DirectoryWatcher:
 
 
 class FileWatcher:
-
     terminate = False
 
     def __init__(self, path, submit_hook, last_submitted_hook):
@@ -68,6 +66,7 @@ class FileWatcher:
             sleep(1)
         print('file watcher exits')
 
+
 class ConfigWindow:
     def __init__(self):
         self.window = Tk()
@@ -76,8 +75,8 @@ class ConfigWindow:
     def run(self):
         self.window.mainloop()
 
-class SubmitWatcher:
 
+class SubmitWatcher:
     terminate = False
 
     def __init__(self, set_last_entry_hook, notifier, notify):
@@ -118,7 +117,6 @@ class EDWatcher:
     def __init__(self):
         print('starting ED watcher...')
 
-
         self.terminate = False
 
         # test if config path and file exists
@@ -152,12 +150,16 @@ class EDWatcher:
         icon_image = Image.open(ICON_PATH)
         exit_item = pystray.MenuItem(enabled=True, text='Exit', action=self.exit)
         notification_item = pystray.MenuItem(enabled=True, text='Notifications', action=self.toggle_notifications,
-                                         checked=lambda item: self.conf['notifications'])
-        configuration_item = pystray.MenuItem(enabled=True, text='Configuration', action=ConfigWindow().run)
+                                             checked=lambda item: self.conf['notifications'])
+        configuration_item = pystray.MenuItem(enabled=True, text='Configuration', action=self.start_config)
         tray_menu = pystray.Menu(configuration_item, notification_item, exit_item)
-        self.icon = pystray.Icon(name='EDWatcher', icon=icon_image, title="EDWatcher", menu=tray_menu)
+        self.icon = pystray.Icon(name='EDWatcher',
+                                 icon=icon_image,
+                                 title="EDWatcher", menu=tray_menu)
 
-
+    def start_config(self):
+        config_window = ConfigWindow()
+        config_window.run()
 
     def toggle_notifications(self, *args, **kwargs):
         self.conf['notifications'] = not self.conf['notifications']
@@ -218,12 +220,11 @@ class EDWatcher:
             et.start()
             exit_threads.append(et)
         for et in exit_threads:
-            if et : et.join()
+            if et: et.join()
         print('saving config')
         with open(CONFIG_PATH, 'w') as f:
             f.write(json.dumps(self.conf))
         self.icon.stop()
-
 
     def run(self):
 
@@ -255,6 +256,7 @@ class EDWatcher:
         self.icon.run(setup_icon)
         print('goodbye')
         sys.exit(0)
+
 
 if __name__ == '__main__':
     app = EDWatcher()
