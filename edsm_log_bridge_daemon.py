@@ -3,7 +3,6 @@ import os, json, sys, glob
 from time import sleep
 from threading import Thread, Lock
 from PIL import Image
-from tkinter import *
 
 import pystray
 from win10toast import ToastNotifier
@@ -68,13 +67,6 @@ class FileWatcher:
             sleep(1)
         print('file watcher exits')
 
-class ConfigWindow:
-    def __init__(self):
-        self.window = Tk()
-        self.window.title = "EDWatcher - Configuration"
-
-    def run(self):
-        self.window.mainloop()
 
 class SubmitWatcher:
 
@@ -153,8 +145,7 @@ class EDWatcher:
         exit_item = pystray.MenuItem(enabled=True, text='Exit', action=self.exit)
         notification_item = pystray.MenuItem(enabled=True, text='Notifications', action=self.toggle_notifications,
                                          checked=lambda item: self.conf['notifications'])
-        configuration_item = pystray.MenuItem(enabled=True, text='Configuration', action=ConfigWindow().run)
-        tray_menu = pystray.Menu(configuration_item, notification_item, exit_item)
+        tray_menu = pystray.Menu( exit_item, notification_item)
         self.icon = pystray.Icon(name='EDWatcher', icon=icon_image, title="EDWatcher", menu=tray_menu)
 
 
