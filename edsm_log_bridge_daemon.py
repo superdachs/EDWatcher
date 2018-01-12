@@ -2,6 +2,8 @@ from pathlib import Path
 import os, json, sys, glob
 from time import sleep
 from threading import Thread, Lock
+from Configurator import Config_App
+
 from PIL import Image
 
 import pystray
@@ -120,6 +122,8 @@ class EDWatcher:
                 f.write(json.dumps({
                     'last_submitted': '',
                     'notifications': True,
+                    'edsm_api_key': '',
+                    'enable_edsm_upload': False,
                 }))
         self.conf = None
         try:
@@ -141,16 +145,29 @@ class EDWatcher:
         self.threads = [t]
         t.start()
 
+
+
         icon_image = Image.open(ICON_PATH)
         exit_item = pystray.MenuItem(enabled=True, text='Exit', action=self.exit)
         notification_item = pystray.MenuItem(enabled=True, text='Notifications', action=self.toggle_notifications,
                                              checked=lambda item: self.conf['notifications'])
-        tray_menu = pystray.Menu(exit_item, notification_item)
+        config_item = pystray.MenuItem(enabled=True, text='Configuration', action=self.open_configurator)
+        tray_menu = pystray.Menu(notification_item, config_item, exit_item)
         self.icon = pystray.Icon(name='EDWatcher',
                                  icon=icon_image,
                                  title="EDWatcher", menu=tray_menu)
 
 
+    def open_configurator(self, *args, **kwargs):
+        self.configurator = Config_App(save_hook=self.save_configurator, config=self.conf)
+        self.configurator.start()
+
+    def save_configurator(self, config, *args, **kwargs):
+        self.conf = config
+        with open(CONFIG_PATH, 'w') as f:
+            f.write(json.dumps(self.conf))
+
+        self.configurator.join(timeout=1)
 
     def toggle_notifications(self, *args, **kwargs):
         self.conf['notifications'] = not self.conf['notifications']
