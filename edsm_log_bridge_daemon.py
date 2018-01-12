@@ -21,11 +21,12 @@ def resource_path(relative):
     return os.path.join(base_path, relative)
 
 
+
 ICON_PATH = resource_path('icon.ico')
 print(ICON_PATH)
 
-
 class DirectoryWatcher:
+
     terminate = False
 
     def __init__(self, dir, set_hook):
@@ -43,6 +44,7 @@ class DirectoryWatcher:
 
 
 class FileWatcher:
+
     terminate = False
 
     def __init__(self, path, submit_hook, last_submitted_hook):
@@ -67,6 +69,7 @@ class FileWatcher:
 
 
 class SubmitWatcher:
+
     terminate = False
 
     def __init__(self, set_last_entry_hook, notifier, notify):
@@ -107,6 +110,7 @@ class EDWatcher:
     def __init__(self):
         print('starting ED watcher...')
 
+
         self.terminate = False
 
         # test if config path and file exists
@@ -146,9 +150,7 @@ class EDWatcher:
                                  icon=icon_image,
                                  title="EDWatcher", menu=tray_menu)
 
-    def start_config(self):
-        config_window = ConfigWindow()
-        config_window.run()
+
 
     def toggle_notifications(self, *args, **kwargs):
         self.conf['notifications'] = not self.conf['notifications']
@@ -209,11 +211,12 @@ class EDWatcher:
             et.start()
             exit_threads.append(et)
         for et in exit_threads:
-            if et: et.join()
+            if et : et.join()
         print('saving config')
         with open(CONFIG_PATH, 'w') as f:
             f.write(json.dumps(self.conf))
         self.icon.stop()
+
 
     def run(self):
 
@@ -245,7 +248,6 @@ class EDWatcher:
         self.icon.run(setup_icon)
         print('goodbye')
         sys.exit(0)
-
 
 if __name__ == '__main__':
     app = EDWatcher()
