@@ -5,7 +5,6 @@ from threading import Thread, Lock
 from PIL import Image
 
 import pystray
-from plyer import notification
 from win10toast import ToastNotifier
 
 JOURNAL_DIR = os.path.join(Path.home(), 'Saved Games', 'Frontier Developments', 'Elite Dangerous')
@@ -13,6 +12,18 @@ CONFIG_DIR = os.path.join(Path.home(), 'AppData', 'local', 'EDWatcher')
 CONFIG_FILE = 'edwatcher.conf'
 CONFIG_PATH = os.path.join(CONFIG_DIR, CONFIG_FILE)
 
+
+def resource_path(relative):
+    try:
+        base_path = sys._MEIPASS
+    except:
+        base_path = os.path.abspath('.')
+    return os.path.join(base_path, relative)
+
+
+
+ICON_PATH = resource_path('icon.ico')
+print(ICON_PATH)
 
 class DirectoryWatcher:
 
@@ -82,7 +93,7 @@ class SubmitWatcher:
                 if self.notify: self.notifier.show_toast(
                     "EDWatch",
                     "Submitted %d events catched from ED" % len(self.submit_entries),
-                    #icon_path=os.path.join(os.getcwd(), 'icon.png'),
+                    icon_path=ICON_PATH,
                     duration=5
                 )
                 self.submit_entries = []
@@ -130,7 +141,7 @@ class EDWatcher:
         self.threads = [t]
         t.start()
 
-        icon_image = Image.open('icon.png')
+        icon_image = Image.open(ICON_PATH)
         exit_item = pystray.MenuItem(enabled=True, text='Exit', action=self.exit)
         notification_item = pystray.MenuItem(enabled=True, text='Notifications', action=self.toggle_notifications,
                                          checked=lambda item: self.conf['notifications'])
