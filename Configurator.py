@@ -1,13 +1,14 @@
+from time import sleep
 from tkinter import *
 from tkinter import ttk
 from threading import Thread
 
-class Config_App(Thread):
-    def __init__(self, save_hook, config, *args, **kwargs):
-        super(Config_App, self).__init__(*args, **kwargs)
+
+class Configurator:
+    def __init__(self, config, queue):
+        self.queue = queue
         self.window = Tk()
         self.window.title = "EDWatcher - Configuration"
-        self.save_hook = save_hook
         self.config = config
 
         mainframe = ttk.Frame(self.window, padding="10 10 15 15")
@@ -30,19 +31,23 @@ class Config_App(Thread):
         ttk.Checkbutton(mainframe, variable=self.enable_notifications).grid(column=1, row=0, sticky=(W, E))
         ttk.Checkbutton(mainframe, variable=self.enable_edsm_upload).grid(column=1, row=1, sticky=(W, E))
 
-        self.api_key_field = ttk.Entry(mainframe, width=15, textvariable=self.api_key).grid(column=1, row=2, sticky=(W,E))
+        self.api_key_field = ttk.Entry(mainframe, width=15, textvariable=self.api_key).grid(column=1, row=2,
+                                                                                            sticky=(W, E))
+        ttk.Button(mainframe, text='save', command=self.save_action).grid(column=1, row=3, sticky=(W, E))
 
+    def save_action(self):
+        self.update_config()
+        self.queue.put(('update_config', self.config))
+        self.queue.put(('save_config',))
+        self.stop()
 
-        ttk.Button(mainframe, text='save', command=self.save_config).grid(column=1, row=3, sticky=(W, E))
-
-    def save_config(self, *args):
+    def update_config(self):
         self.config['notifications'] = self.enable_notifications.get()
         self.config['enable_edsm_upload'] = self.enable_edsm_upload.get()
         self.config['edsm_api_key'] = self.api_key.get()
-        self.save_hook(self.config)
-        self.window.destroy()
 
-
-    def start(self, *args, **kwargs):
-        super(Config_App, self).start(*args, **kwargs)
+    def start(self):
         self.window.mainloop()
+
+    def stop(self):
+        self.window.destroy()

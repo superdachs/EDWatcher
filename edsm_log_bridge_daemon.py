@@ -147,15 +147,6 @@ class EDWatcher:
 
 
 
-        icon_image = Image.open(ICON_PATH)
-        exit_item = pystray.MenuItem(enabled=True, text='Exit', action=self.exit)
-        notification_item = pystray.MenuItem(enabled=True, text='Notifications', action=self.toggle_notifications,
-                                             checked=lambda item: self.conf['notifications'])
-        config_item = pystray.MenuItem(enabled=True, text='Configuration', action=self.open_configurator)
-        tray_menu = pystray.Menu(notification_item, config_item, exit_item)
-        self.icon = pystray.Icon(name='EDWatcher',
-                                 icon=icon_image,
-                                 title="EDWatcher", menu=tray_menu)
 
 
     def open_configurator(self, *args, **kwargs):
@@ -214,6 +205,24 @@ class EDWatcher:
             self.submit_entry_lock.release()
             sleep(10)
 
+    def start_tray_icon(self, toggle_notifications, open_configurator, exit):
+
+        icon_image = Image.open(ICON_PATH)
+        exit_item = pystray.MenuItem(enabled=True, text='Exit', action=exit)
+        notification_item = pystray.MenuItem(enabled=True, text='Notifications', action=toggle_notifications,
+                                             checked=lambda item: self.conf['notifications'])
+        config_item = pystray.MenuItem(enabled=True, text='Configuration', action=open_configurator)
+        tray_menu = pystray.Menu(notification_item, config_item, exit_item)
+        icon = pystray.Icon(name='EDWatcher',
+                                 icon=icon_image,
+                                 title="EDWatcher", menu=tray_menu)
+
+        def setup_icon(icon):
+            icon.visible = True
+        # icon.run blocks itself
+        icon.run(setup_icon)
+
+
     def exit(self, *args, **kwargs):
         print('shut down EDWatcher')
         self.terminate = True
@@ -258,13 +267,14 @@ class EDWatcher:
         # running loop in a thread to start tray icon from main thread so this possibly runs also on mac os
         Thread(target=self.loop).start()
 
-        def setup_icon(icon):
-            icon.visible = True
+        # start tray icon
+        Thread(target=self.start_tray_icon, args=(self.toggle_notifications, self.open_configurator, self.exit)).start()
 
-        # icon.run blocks itself
-        self.icon.run(setup_icon)
+
         print('goodbye')
         sys.exit(0)
+
+
 
 if __name__ == '__main__':
     app = EDWatcher()
