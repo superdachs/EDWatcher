@@ -48,34 +48,31 @@ class EDWatcher:
             quit(1)
 
         self.threads = []
-        self.stop_queue_listeners = False
-        self.stop_task_listener = False
-        self.stop_config_listener = False
-
+        self.to_config_queue = None
         self.config_window_open = False
 
-    def run_tray_icon(self, q):
-        tray = Tray(ICON_PATH, self.conf, q)
+    def run_tray_icon(self, q, rq):
+        tray = Tray(ICON_PATH, self.conf, q, rq)
         tray.start()
 
-    def run_config_window(self, q):
-        config_window = Configurator(self.conf, q)
+    def run_config_window(self, q, rq):
+        config_window = Configurator(self.conf, q, rq)
         config_window.start()
 
-    def queue_listener(self, queue, stop_listener, stop_listeners):
-        while not stop_listener and not stop_listeners:
+    def queue_listener(self, queue):
+        while True:
             function, *args = queue.get()
             getattr(self, function)(*args)
-            sleep(0.1)
 
     def run(self):
         self.config_process = None
         self.tray_queue = Queue()
+        self.to_tray_queue = Queue()
         t = Thread(target=self.queue_listener,
-                   args=(self.tray_queue, getattr(self, 'stop_task_listener'), getattr(self, 'stop_queue_listeners'),),
+                   args=(self.tray_queue,),
                    daemon=True)
         t.start()
-        self.tray_process = Process(target=self.run_tray_icon, args=(self.tray_queue,))
+        self.tray_process = Process(target=self.run_tray_icon, args=(self.tray_queue, self.to_tray_queue, ))
         self.tray_process.start()
         t.join()
 
@@ -83,15 +80,12 @@ class EDWatcher:
         if self.config_process:
             self.config_process.terminate()
         self.tray_process.terminate()
-        self.stop_queue_listeners = True
         sys.exit(0)
-
-    def toggle_notifications(self, config):
-        self.conf['notifications'] = config['notifications']
-        self.save_config()
 
     def update_config(self, config):
         self.conf = config
+        self.to_tray_queue.put(('update_config', self.conf))
+
 
     def save_config(self):
         with open(CONFIG_PATH, 'w') as f:
@@ -101,21 +95,17 @@ class EDWatcher:
         if not self.config_window_open:
             self.config_window_open = True
             self.config_queue = Queue()
+            self.to_config_queue = Queue()
             t = Thread(target=self.queue_listener,
-                       args=(
-                           self.config_queue, getattr(self, 'stop_config_listener'),
-                           getattr(self, 'stop_queue_listeners'),),
+                       args=(self.config_queue,),
                        daemon=True)
             t.start()
-            self.config_process = Process(target=self.run_config_window, args=(self.config_queue,))
+            self.config_process = Process(target=self.run_config_window, args=(self.config_queue, self.to_config_queue, ))
             self.config_process.start()
-            self.config_process.join()
-            self.config_window_open = False
 
-class QueueListener(Thread):
-    def __init__(self):
-        super(QueueListener, self).__init__()
-
+    def close_configurator(self):
+        self.config_process.join()
+        self.config_window_open = False
 
 if __name__ == '__main__':
     EDWatcher().run()
