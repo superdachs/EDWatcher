@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 from pathlib import Path
 from multiprocessing import Process, Queue
 from threading import Thread
@@ -7,6 +8,8 @@ from time import sleep
 import os
 
 import sys
+
+import psutil as psutil
 
 from Configurator import Configurator
 from Tray import Tray
@@ -30,6 +33,10 @@ ICON_PATH = resource_path('icon.ico')
 
 class EDWatcher:
     def __init__(self):
+        print('starting EDWatcher')
+        if 'EDWatcher' in (p.name() for p in psutil.process_iter()):
+            print('already running')
+            sys.exit(1)
         Path(CONFIG_DIR).mkdir(exist_ok=True, parents=True)
         if not Path(CONFIG_PATH).exists():
             with open(CONFIG_PATH, 'w') as f:
@@ -108,4 +115,5 @@ class EDWatcher:
         self.config_window_open = False
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     EDWatcher().run()
