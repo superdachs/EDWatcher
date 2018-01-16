@@ -1,5 +1,9 @@
+argh==0.26.2
+pathtools==0.1.2
 Pillow==5.0.0
 psutil==5.4.3
 pystray==0.14.3
 python-xlib==0.21
+PyYAML==3.12
 six==1.11.0
+watchdog==0.8.3
