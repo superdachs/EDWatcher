@@ -1,6 +1,5 @@
 Pillow==5.0.0
-plyer==1.3.0
-pypiwin32==220
+psutil==5.4.3
 pystray==0.14.3
+python-xlib==0.21
 six==1.11.0
-win10toast==0.8
